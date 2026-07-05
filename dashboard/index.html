@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Buck-Boost Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #030d07;
+    --bg-radial: #0a1f1440;
+    --panel-bg: #050f0a;
+    --panel-border: #1e3a2f;
+    --stat-bg: #0a1f14;
+    --stat-border: #1e3a2f;
+    --text: #e8f5e9;
+    --text-muted: #4a7c6a;
+    --accent: #00e5a0;
+    --accent2: #4db8ff;
+    --accent3: #f0b429;
+    --grid: #1e3a2f;
+    --input-bg: #050f0a;
+    --track-bg: #0d2018;
+  }
+
+  body.light {
+    --bg: #eef6f1;
+    --bg-radial: #ffffff00;
+    --panel-bg: #ffffff;
+    --panel-border: #cfe3d8;
+    --stat-bg: #f4faf7;
+    --stat-border: #d7ebe1;
+    --text: #10241a;
+    --text-muted: #5c7d6c;
+    --accent: #0aa876;
+    --accent2: #1f7fc7;
+    --accent3: #c78a12;
+    --grid: #dcece3;
+    --input-bg: #ffffff;
+    --track-bg: #e3f0e9;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 20px;
+    background-image: radial-gradient(ellipse at 20% 20%, var(--bg-radial) 0%, transparent 60%);
+    transition: background 0.25s, color 0.25s;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .title-block .subtitle {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+
+  .title-block h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ff4d4d;
+    box-shadow: 0 0 8px #ff4d4d;
+    transition: all 0.3s;
+  }
+
+  .dot.connected {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .theme-toggle {
+    background: var(--stat-bg);
+    border: 1px solid var(--stat-border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: opacity 0.2s;
+  }
+  .theme-toggle:hover { opacity: 0.8; }
+
+  .gauges-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .gauge-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 24px;
+    display: flex;
+    gap: 32px;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .gauge-wrap { text-align: center; }
+
+  .gauge-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    margin-top: 4px;
+  }
+
+  .stats-control {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 260px;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stat-box {
+    background: var(--stat-bg);
+    border: 1px solid var(--stat-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    min-width: 90px;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .stat-unit {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 3px;
+  }
+
+  .control-panel {
+    background: var(--stat-bg);
+    border: 1px solid var(--stat-border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .control-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+
+  .control-panel input[type="number"] {
+    background: var(--input-bg);
+    border: 1px solid var(--stat-border);
+    color: var(--accent3);
+    font-family: monospace;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    width: 90px;
+    outline: none;
+  }
+
+  .control-panel input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+    accent-color: var(--accent);
+  }
+
+  .btn-set {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: opacity 0.2s;
+  }
+  .btn-set:hover { opacity: 0.85; }
+
+  .osc-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .osc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .osc-title {
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .legend-line {
+    width: 20px;
+    height: 2px;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 480px;
+  }
+
+  footer {
+    display: flex;
+    gap: 16px;
+    font-size: 9px;
+    color: var(--panel-border);
+    letter-spacing: 0.12em;
+    flex-wrap: wrap;
+  }
+
+  footer .sep { color: var(--panel-border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <div class="subtitle">BUCK-BOOST DC/DC CONVERTER</div>
+    <h1>Control Dashboard</h1>
+  </div>
+  <div class="header-right">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">☾ DARK</button>
+    <div class="status">
+      <div class="dot" id="dot"></div>
+      <span id="status-text">DISCONNECTED</span>
+    </div>
+  </div>
+</header>
+
+<div class="gauges-row">
+  <div class="gauge-panel">
+    <div class="gauge-wrap">
+      <canvas id="gaugeVin" width="120" height="90"></canvas>
+      <div class="gauge-label" style="color:var(--accent)">VIN</div>
+    </div>
+    <div class="gauge-wrap">
+      <canvas id="gaugeVout" width="120" height="90"></canvas>
+      <div class="gauge-label" style="color:var(--accent2)">VOUT</div>
+    </div>
+  </div>
+
+  <div class="stats-control">
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-label">TARGET</div>
+        <div class="stat-value" id="val-target" style="color:var(--accent3)">—<span class="stat-unit">V</span></div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <span class="control-label">SET TARGET (mV)</span>
+      <input type="number" id="target-input" value="5000" min="3000" max="15000" step="100"
+        onchange="document.getElementById('target-slider').value = this.value">
+      <input type="range" id="target-slider" min="3000" max="15000" step="100" value="5000"
+        oninput="document.getElementById('target-input').value = this.value">
+      <button class="btn-set" onclick="sendTarget()">SET</button>
+    </div>
+  </div>
+</div>
+
+<div class="osc-panel">
+  <div class="osc-header">
+    <span class="osc-title">30s WINDOW</span>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-line" style="background:var(--accent)"></div>
+        <span style="color:var(--accent)">VIN</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:var(--accent2)"></div>
+        <span style="color:var(--accent2)">VOUT</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:var(--accent3); border-top: 2px dashed var(--accent3); height:0"></div>
+        <span style="color:var(--accent3)">TARGET</span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="oscChart"></canvas>
+  </div>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const WINDOW_SECONDS = 30;
+const SAMPLE_MS = 100;
+const POINTS = Math.round(WINDOW_SECONDS * 1000 / SAMPLE_MS);
+
+const vinData  = Array(POINTS).fill(null);
+const voutData = Array(POINTS).fill(null);
+const tgtData  = Array(POINTS).fill(null);
+const timeLabels = Array.from({length: POINTS}, (_, i) => {
+  const t = -(POINTS - 1 - i) * SAMPLE_MS / 1000;
+  return t.toFixed(1) + 's';
+});
+
+let lastVin = 0, lastVout = 0;
+let target = 5000;
+let ws = null;
+
+function cssVar(name) {
+  return getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+// ─── Chart ────────────────────────────────────────────────────────────────────
+const ctx = document.getElementById('oscChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: timeLabels,
+    datasets: [
+      { label: 'VIN',    data: vinData,  borderColor: cssVar('--accent'),  borderWidth: 2,
+        pointRadius: 0, tension: 0.2, fill: false, spanGaps: true },
+      { label: 'VOUT',   data: voutData, borderColor: cssVar('--accent2'), borderWidth: 2,
+        pointRadius: 0, tension: 0.2, fill: false, spanGaps: true },
+      { label: 'TARGET', data: tgtData,  borderColor: cssVar('--accent3'), borderWidth: 1,
+        borderDash: [6,4], pointRadius: 0, tension: 0, fill: false, spanGaps: true },
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        display: false
+      },
+      y: {
+        min: 0, max: 40000,
+        grid: { color: cssVar('--grid') },
+        ticks: {
+          color: cssVar('--text-muted'), font: { family: 'monospace', size: 11 },
+          stepSize: 5000,
+          callback: v => (v/1000).toFixed(0) + 'V'
+        },
+        border: { color: cssVar('--grid') }
+      }
+    }
+  }
+});
+
+// ─── Theme toggle ─────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle').textContent = isLight ? '☀ LIGHT' : '☾ DARK';
+
+  chart.data.datasets[0].borderColor = cssVar('--accent');
+  chart.data.datasets[1].borderColor = cssVar('--accent2');
+  chart.data.datasets[2].borderColor = cssVar('--accent3');
+  chart.options.scales.y.grid.color = cssVar('--grid');
+  chart.options.scales.y.ticks.color = cssVar('--text-muted');
+  chart.options.scales.y.border.color = cssVar('--grid');
+  chart.update('none');
+
+  drawGauge('gaugeVin',  lastVin,  40000, cssVar('--accent'),  'V');
+  drawGauge('gaugeVout', lastVout, 16000, cssVar('--accent2'), 'V');
+}
+
+// (échelle Y fixe 0–40V, pas d'auto-scale)
+
+// ─── Gauges ───────────────────────────────────────────────────────────────────
+function drawGauge(canvasId, value, max, color, unit) {
+  const canvas = document.getElementById(canvasId);
+  const c = canvas.getContext('2d');
+  const W = 120, H = 90, cx = 60, cy = 62, r = 44;
+  c.clearRect(0, 0, W, H);
+
+  const startA = Math.PI * 0.75;
+  const endA   = Math.PI * 2.25;
+  const pct    = Math.min(1, Math.max(0, value / max));
+  const valA   = startA + pct * (endA - startA);
+
+  c.beginPath();
+  c.arc(cx, cy, r, startA, endA);
+  c.strokeStyle = cssVar('--track-bg');
+  c.lineWidth = 8;
+  c.lineCap = 'round';
+  c.stroke();
+
+  c.beginPath();
+  c.arc(cx, cy, r, startA, valA);
+  c.strokeStyle = color;
+  c.lineWidth = 8;
+  c.lineCap = 'round';
+  c.stroke();
+
+  const nx = cx + (r - 12) * Math.cos(valA);
+  const ny = cy + (r - 12) * Math.sin(valA);
+  c.beginPath();
+  c.moveTo(cx, cy);
+  c.lineTo(nx, ny);
+  c.strokeStyle = cssVar('--text');
+  c.lineWidth = 1.5;
+  c.lineCap = 'round';
+  c.stroke();
+  c.beginPath();
+  c.arc(cx, cy, 3, 0, Math.PI * 2);
+  c.fillStyle = color;
+  c.fill();
+
+  c.fillStyle = cssVar('--text');
+  c.font = 'bold 13px monospace';
+  c.textAlign = 'center';
+  c.fillText((value / 1000).toFixed(2), cx, cy + 20);
+  c.fillStyle = cssVar('--text-muted');
+  c.font = '8px monospace';
+  c.fillText(unit, cx, cy + 30);
+}
+
+// ─── WebSocket ───────────────────────────────────────────────────────────────
+function connect() {
+  ws = new WebSocket('ws://localhost:8765');
+
+  ws.onopen = () => {
+    document.getElementById('dot').classList.add('connected');
+    document.getElementById('status-text').textContent = 'COM6 · CONNECTED';
+  };
+
+  ws.onclose = () => {
+    document.getElementById('dot').classList.remove('connected');
+    document.getElementById('status-text').textContent = 'DISCONNECTED — reconnexion...';
+    setTimeout(connect, 2000);
+  };
+
+  ws.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.error) { console.error(d.error); return; }
+
+    vinData.shift();  vinData.push(d.VIN   ?? null);
+    voutData.shift(); voutData.push(d.VOUT  ?? null);
+    tgtData.shift();  tgtData.push(d.TARGET ?? target);
+
+    if (d.VIN  != null) lastVin  = d.VIN;
+    if (d.VOUT != null) lastVout = d.VOUT;
+
+    chart.update('none');
+
+    if (d.VIN  != null) drawGauge('gaugeVin',  d.VIN,  40000, cssVar('--accent'),  'V');
+    if (d.VOUT != null) drawGauge('gaugeVout', d.VOUT, 16000, cssVar('--accent2'), 'V');
+
+    if (d.TARGET != null) {
+      target = d.TARGET;
+      document.getElementById('val-target').innerHTML =
+        (d.TARGET/1000).toFixed(2) + '<span class="stat-unit">V</span>';
+    }
+  };
+}
+
+function sendTarget() {
+  const v = parseInt(document.getElementById('target-input').value);
+  if (v >= 3000 && v <= 15000 && ws && ws.readyState === WebSocket.OPEN) {
+    ws.send('SET:' + v);
+  }
+}
+
+document.getElementById('target-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendTarget();
+});
+
+connect();
+drawGauge('gaugeVin',  0, 40000, cssVar('--accent'),  'V');
+drawGauge('gaugeVout', 0, 16000, cssVar('--accent2'), 'V');
+</script>
+</body>
+</html>
