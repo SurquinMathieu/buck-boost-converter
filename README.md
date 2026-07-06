@@ -29,11 +29,11 @@ This project implements a 4-switch buck-boost DC/DC converter. The STM32 runs a 
 
 ## Hardware
 
-![PCB](images/PCB 3D view.jpg)
+![PCB](images/pcb-3d.PNG)
 
 The converter uses four N-channel MOSFETs driven by two half-bridge gate drivers.
 
-![PCB layout](images/PCB layout.png)
+![PCB layout](images/pcb-layout.PNG)
 
 See [`hardware/kicad`](hardware/kicad) for the full KiCad project and [`hardware/bom`](hardware/bom) for the bill of materials.
 
@@ -49,7 +49,7 @@ See [`firmware/`](firmware) for the STM32CubeIDE project.
 
 ## Dashboard
 
-![Dashboard](images/Dashboard.png)
+![Dashboard](images/Dashboard.PNG)
 
 The dashboard connects to the board's virtual COM port and streams VIN/VOUT/target data to a browser in real time over a local WebSocket, with a live waveform plot and a setpoint control.
 
